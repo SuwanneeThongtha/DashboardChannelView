@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signal Analysis Suite</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #0a0a0a;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Mode Switcher */
+        .mode-switcher {
+            display: flex;
+            background: #2a2a2a;
+            border-radius: 50px;
+            padding: 4px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .mode-btn {
+            padding: 10px 24px;
+            border: none;
+            background: transparent;
+            color: #888;
+            border-radius: 46px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .mode-btn:hover:not(.active) {
+            color: #aaa;
+        }
+
+        /* File Controls */
+        .file-controls {
+            background: #1a1a1a;
+            padding: 20px;
+            border-bottom: 1px solid #333;
+        }
+
+        .file-controls-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .file-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-load {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #444;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-load:hover {
+            background: #555;
+            transform: translateY(-2px);
+        }
+
+        #fileStatus {
+            flex: 1;
+            text-align: right;
+            color: #888;
+            font-size: 14px;
+        }
+
+        #fileStatus.success {
+            color: #10b981;
+        }
+
+        #fileStatus.error {
+            color: #ef4444;
+        }
+
+        /* Content Container */
+        .content-container {
+            position: relative;
+            min-height: calc(100vh - 180px);
+        }
+
+        .view-panel {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .view-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Single Analysis View Styles */
+        .single-view {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .controls {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            border: 1px solid #333;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #a0a0a0;
+            font-weight: 500;
+        }
+
+        select,
+        input {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #2a2a2a;
+            color: #ffffff;
+            font-size: 14px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        select:hover,
+        input:hover {
+            border-color: #667eea;
+            background: #333;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #444;
+        }
+
+        .btn-secondary:hover {
+            background: #555;
+            transform: translateY(-2px);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 500px;
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            border: 1px solid #333;
+        }
+
+        .row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .col {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .info-box {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #444;
+        }
+
+        .info-box h3 {
+            margin: 0 0 10px 0;
+            color: #667eea;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .info-box p {
+            margin: 5px 0;
+            color: #a0a0a0;
+            font-size: 14px;
+        }
+
+        .highlight {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        /* Multi View Styles */
+        .multi-view {
+            height: calc(100vh - 180px);
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .multi-controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .range-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .range-controls input {
+            width: 100px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+            color: #333;
+            background: white;
+        }
+
+        .range-controls label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 0;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            height: calc(100% - 80px);
+            overflow-y: auto;
+        }
+
+        .grid-chart-container {
+            position: relative;
+            height: 40px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+
+        .grid-chart-container:last-child {
+            border-bottom: none;
+        }
+
+        .channel-label {
+            position: absolute;
+            left: 5px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #666;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 2px 5px;
+            border-radius: 3px;
+            z-index: 10;
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 100;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #333;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <h1>Signal Analysis Suite</h1>
+            <div class="mode-switcher">
+                <button class="mode-btn active" onclick="switchMode('single')">
+                    📊 Single Analysis
+                </button>
+                <button class="mode-btn" onclick="switchMode('multi')">
+                    📈 Multi-Channel View
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Controls -->
+    <div class="file-controls">
+        <div class="file-controls-content">
+            <input type="file" id="fileInput" accept=".csv" onchange="handleFileSelect(event)">
+            <label for="fileInput" class="file-label">📁 Choose CSV File</label>
+            <button class="btn-load" onclick="loadUploadedFile()">Load USB3_Samples File</button>
+            <div id="fileStatus">No file loaded</div>
+        </div>
+    </div>
+
+    <!-- Content Container -->
+    <div class="content-container">
+        <!-- Loading Indicator -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="color: #667eea;">Loading and processing data...</p>
+        </div>
+
+        <!-- Single Analysis View -->
+        <div class="view-panel active" id="singleView">
+            <div class="single-view">
+                <div class="controls">
+                    <div class="row">
+                        <div class="col">
+                            <div class="control-group">
+                                <label for="channelSelect">Select Channel(s):</label>
+                                <select id="channelSelect" multiple size="5">
+                                    <option value="">No data loaded</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="control-group">
+                                <label for="startCounter">Start Counter:</label>
+                                <input type="number" id="startCounter" placeholder="Min value">
+                            </div>
+                            <div class="control-group">
+                                <label for="endCounter">End Counter:</label>
+                                <input type="number" id="endCounter" placeholder="Max value">
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="info-box">
+                                <h3>Data Info</h3>
+                                <p>Total Samples: <span class="highlight" id="totalSamples">-</span></p>
+                                <p>Counter Range: <span class="highlight" id="counterRange">-</span></p>
+                                <p>Channels: <span class="highlight" id="channelCount">-</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-primary" onclick="updateSingleChart()">Update Chart</button>
+                        <button class="btn-secondary" onclick="resetSingleView()">Reset View</button>
+                        <button class="btn-secondary" onclick="downloadChart()">Download Chart</button>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="singleChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Multi-Channel View -->
+        <div class="view-panel" id="multiView">
+            <div class="multi-view">
+                <div class="multi-controls">
+                    <div class="range-controls">
+                        <label>Range:</label>
+                        <input type="number" id="multiStartCounter" placeholder="Start">
+                        <span style="color: #666;">-</span>
+                        <input type="number" id="multiEndCounter" placeholder="End">
+                    </div>
+                    <button class="btn-primary" onclick="updateMultiCharts()">Update Range</button>
+                    <button class="btn-secondary" onclick="resetMultiView()">Reset View</button>
+                    <div id="multiStatus" style="flex: 1; text-align: right; color: #666; font-size: 14px;">
+                        No data loaded
+                    </div>
+                </div>
+
+                <div class="chart-grid" id="chartGrid">
+                    <!-- Charts will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let parsedData = null;
+        let singleChart = null;
+        let multiCharts = [];
+        let minCounter = null;
+        let maxCounter = null;
+        let currentMode = 'single';
+
+        // Color palettes
+        const singleColors = [
+            'rgba(102, 126, 234, 1)',
+            'rgba(118, 75, 162, 1)',
+            'rgba(236, 72, 153, 1)',
+            'rgba(239, 68, 68, 1)',
+            'rgba(245, 158, 11, 1)',
+            'rgba(16, 185, 129, 1)',
+            'rgba(59, 130, 246, 1)',
+            'rgba(139, 92, 246, 1)'
+        ];
+
+        const multiColors = [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+            '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#36A2EB'
+        ];
+
+        // Initialize single chart
+        function initSingleChart() {
+            const ctx = document.getElementById('singleChart').getContext('2d');
+            singleChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Signal Analysis',
+                            color: '#ffffff',
+                            font: {
+                                size: 18,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: '#a0a0a0',
+                                font: {
+                                    size: 12
+                                },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                            titleColor: '#ffffff',
+                            bodyColor: '#a0a0a0',
+                            borderColor: '#667eea',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            padding: 12
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Counter',
+                                color: '#a0a0a0',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                borderColor: '#444'
+                            },
+                            ticks: {
+                                color: '#a0a0a0',
+                                maxRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 20
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Signal Value',
+                                color: '#a0a0a0',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)',
+                                borderColor: '#444'
+                            },
+                            ticks: {
+                                color: '#a0a0a0'
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    },
+                    elements: {
+                        line: {
+                            tension: 0,
+                            borderWidth: 2
+                        },
+                        point: {
+                            radius: 0,
+                            hoverRadius: 5,
+                            hitRadius: 10
+                        }
+                    }
+                }
+            });
+        }
+
+        // Switch between modes
+        function switchMode(mode) {
+            currentMode = mode;
+
+            // Update button states
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Switch views
+            document.querySelectorAll('.view-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+
+            if (mode === 'single') {
+                document.getElementById('singleView').classList.add('active');
+            } else {
+                document.getElementById('multiView').classList.add('active');
+                if (parsedData && multiCharts.length === 0) {
+                    createMultiCharts();
+                }
+            }
+        }
+
+        // Handle file selection
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file && file.type === 'text/csv') {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    processCSVData(e.target.result, file.name);
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Load uploaded file
+        async function loadUploadedFile() {
+            const loading = document.getElementById('loading');
+            const status = document.getElementById('fileStatus');
+
+            try {
+                loading.classList.add('active');
+                status.textContent = 'Loading file...';
+                status.className = '';
+
+                if (window.fs && window.fs.readFile) {
+                    const fileContent = await window.fs.readFile('USB3_Samples_20250616_150812.csv', { encoding: 'utf8' });
+                    processCSVData(fileContent, 'USB3_Samples_20250616_150812.csv');
+                } else {
+                    status.textContent = 'Please use the file picker';
+                    status.className = 'error';
+                    loading.classList.remove('active');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                status.textContent = 'Error loading file';
+                status.className = 'error';
+                loading.classList.remove('active');
+            }
+        }
+
+        // Process CSV data
+        function processCSVData(csvContent, filename) {
+            const loading = document.getElementById('loading');
+            const status = document.getElementById('fileStatus');
+
+            try {
+                status.textContent = 'Parsing data...';
+
+                parsedData = Papa.parse(csvContent, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true
+                });
+
+                if (!parsedData.data || parsedData.data.length === 0) {
+                    throw new Error('No data found');
+                }
+
+                // Get counter range
+                const counters = parsedData.data.map(row => row.Counter).filter(c => c !== null && !isNaN(c));
+                minCounter = Math.min(...counters);
+                maxCounter = Math.max(...counters);
+
+                // Get all signal channels
+                const channelColumns = Object.keys(parsedData.data[0])
+                    .filter(col => col.startsWith('Signal_CH'))
+                    .sort((a, b) => {
+                        const numA = parseInt(a.replace('Signal_CH', ''));
+                        const numB = parseInt(b.replace('Signal_CH', ''));
+                        return numA - numB;
+                    });
+
+                // Update single view
+                updateSingleViewControls(channelColumns);
+
+                // Update multi view controls
+                document.getElementById('multiStartCounter').value = minCounter;
+                document.getElementById('multiEndCounter').value = maxCounter;
+
+                // Update status
+                status.textContent = `Loaded: ${filename} (${parsedData.data.length} samples, ${channelColumns.length} channels)`;
+                status.className = 'success';
+
+                document.getElementById('multiStatus').textContent =
+                    `${parsedData.data.length} samples, ${channelColumns.length} channels`;
+
+                loading.classList.remove('active');
+
+                // Auto-update current view
+                if (currentMode === 'single') {
+                    updateSingleChart();
+                } else {
+                    createMultiCharts();
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                status.textContent = 'Error: ' + error.message;
+                status.className = 'error';
+                loading.classList.remove('active');
+            }
+        }
+
+        // Update single view controls
+        function updateSingleViewControls(channels) {
+            const channelSelect = document.getElementById('channelSelect');
+            channelSelect.innerHTML = '';
+
+            channels.forEach((col, index) => {
+                const option = document.createElement('option');
+                option.value = col;
+                option.textContent = col.replace('Signal_', '');
+                if (index === 0) option.selected = true;
+                channelSelect.appendChild(option);
+            });
+
+            // Set counter inputs
+            document.getElementById('startCounter').value = minCounter;
+            document.getElementById('endCounter').value = maxCounter;
+
+            // Update info box
+            document.getElementById('totalSamples').textContent = parsedData.data.length.toLocaleString();
+            document.getElementById('counterRange').textContent = `${minCounter.toLocaleString()} - ${maxCounter.toLocaleString()}`;
+            document.getElementById('channelCount').textContent = channels.length;
+        }
+
+        // Update single chart
+        function updateSingleChart() {
+            if (!parsedData) {
+                alert('Please load data first');
+                return;
+            }
+
+            const selectedChannels = Array.from(document.getElementById('channelSelect').selectedOptions)
+                .map(option => option.value);
+
+            if (selectedChannels.length === 0) {
+                alert('Please select at least one channel');
+                return;
+            }
+
+            const startCounter = parseInt(document.getElementById('startCounter').value) || minCounter;
+            const endCounter = parseInt(document.getElementById('endCounter').value) || maxCounter;
+
+            // Filter data
+            const filteredData = parsedData.data.filter(row =>
+                row.Counter >= startCounter && row.Counter <= endCounter
+            );
+
+            // Downsample if needed
+            let sampledData = filteredData;
+            if (filteredData.length > 5000) {
+                const sampleRate = Math.ceil(filteredData.length / 5000);
+                sampledData = filteredData.filter((_, index) => index % sampleRate === 0);
+            }
+
+            // Prepare chart data
+            const labels = sampledData.map(row => row.Counter);
+            const datasets = selectedChannels.map((channel, index) => ({
+                label: channel.replace('Signal_', ''),
+                data: sampledData.map(row => row[channel]),
+                borderColor: singleColors[index % singleColors.length],
+                backgroundColor: singleColors[index % singleColors.length].replace('1)', '0.1)'),
+                borderWidth: 2,
+                tension: 0,
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                fill: false
+            }));
+
+            // Update chart
+            singleChart.data.labels = labels;
+            singleChart.data.datasets = datasets;
+            singleChart.update('none');
+        }
+
+        // Create multi charts
+        function createMultiCharts() {
+            if (!parsedData) return;
+
+            const chartGrid = document.getElementById('chartGrid');
+            chartGrid.innerHTML = '';
+
+            // Clear existing charts
+            multiCharts.forEach(chart => chart.destroy());
+            multiCharts = [];
+
+            // Get channels
+            const channels = Object.keys(parsedData.data[0])
+                .filter(col => col.startsWith('Signal_CH'))
+                .sort((a, b) => {
+                    const numA = parseInt(a.replace('Signal_CH', ''));
+                    const numB = parseInt(b.replace('Signal_CH', ''));
+                    return numA - numB;
+                });
+
+            // Downsample data
+            const step = Math.max(1, Math.floor(parsedData.data.length / 2000));
+            const sampledData = parsedData.data.filter((_, index) => index % step === 0);
+
+            // Create a chart for each channel
+            channels.forEach((channel, index) => {
+                // Create container
+                const container = document.createElement('div');
+                container.className = 'grid-chart-container';
+
+                // Add channel label
+                const label = document.createElement('div');
+                label.className = 'channel-label';
+                label.textContent = channel.replace('Signal_', '');
+                container.appendChild(label);
+
+                // Create canvas
+                const canvas = document.createElement('canvas');
+                canvas.id = `chart-${channel}`;
+                container.appendChild(canvas);
+
+                chartGrid.appendChild(container);
+
+                // Create chart
+                const ctx = canvas.getContext('2d');
+                const chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: sampledData.map(row => row.Counter),
+                        datasets: [{
+                            data: sampledData.map(row => row[channel]),
+                            borderColor: multiColors[index % multiColors.length],
+                            borderWidth: 1,
+                            pointRadius: 0,
+                            tension: 0,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false }
+                        },
+                        scales: {
+                            x: { display: false },
+                            y: {
+                                display: true,
+                                position: 'right',
+                                grid: { display: false },
+                                ticks: {
+                                    display: true,
+                                    font: { size: 9 },
+                                    maxTicksLimit: 3,
+                                    callback: function (value) {
+                                        return value.toFixed(0);
+                                    }
+                                }
+                            }
+                        },
+                        animation: false
+                    }
+                });
+
+                multiCharts.push(chart);
+            });
+
+            // Add x-axis at the bottom
+            const xAxisContainer = document.createElement('div');
+            xAxisContainer.className = 'grid-chart-container';
+            xAxisContainer.style.height = '30px';
+
+            const xCanvas = document.createElement('canvas');
+            xAxisContainer.appendChild(xCanvas);
+            chartGrid.appendChild(xAxisContainer);
+
+            const xCtx = xCanvas.getContext('2d');
+            const xChart = new Chart(xCtx, {
+                type: 'line',
+                data: {
+                    labels: sampledData.map(row => row.Counter),
+                    datasets: [{ data: [] }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            grid: { display: false },
+                            ticks: {
+                                font: { size: 10 },
+                                maxTicksLimit: 10
+                            },
+                            title: {
+                                display: true,
+                                text: 'Counter',
+                                font: { size: 12 }
+                            }
+                        },
+                        y: { display: false }
+                    },
+                    animation: false
+                }
+            });
+
+            multiCharts.push(xChart);
+
+            document.getElementById('multiStatus').textContent =
+                `Showing ${sampledData.length} points`;
+        }
+
+        // Update multi charts
+        function updateMultiCharts() {
+            if (!parsedData || multiCharts.length === 0) return;
+
+            const startCounter = parseInt(document.getElementById('multiStartCounter').value) || minCounter;
+            const endCounter = parseInt(document.getElementById('multiEndCounter').value) || maxCounter;
+
+            // Filter data
+            const filteredData = parsedData.data.filter(row =>
+                row.Counter >= startCounter && row.Counter <= endCounter
+            );
+
+            // Downsample
+            const step = Math.max(1, Math.floor(filteredData.length / 2000));
+            const sampledData = filteredData.filter((_, index) => index % step === 0);
+
+            // Get channels
+            const channels = Object.keys(parsedData.data[0])
+                .filter(col => col.startsWith('Signal_CH'))
+                .sort((a, b) => {
+                    const numA = parseInt(a.replace('Signal_CH', ''));
+                    const numB = parseInt(b.replace('Signal_CH', ''));
+                    return numA - numB;
+                });
+
+            // Update all charts
+            multiCharts.forEach((chart, index) => {
+                if (index < channels.length) {
+                    chart.data.labels = sampledData.map(row => row.Counter);
+                    chart.data.datasets[0].data = sampledData.map(row => row[channels[index]]);
+                } else if (index === channels.length) {
+                    chart.data.labels = sampledData.map(row => row.Counter);
+                }
+                chart.update('none');
+            });
+
+            document.getElementById('multiStatus').textContent =
+                `Showing ${sampledData.length} points (${startCounter} - ${endCounter})`;
+        }
+
+        // Reset functions
+        function resetSingleView() {
+            if (!parsedData) return;
+
+            document.getElementById('startCounter').value = minCounter;
+            document.getElementById('endCounter').value = maxCounter;
+
+            const channelSelect = document.getElementById('channelSelect');
+            Array.from(channelSelect.options).forEach((option, index) => {
+                option.selected = index === 0;
+            });
+
+            updateSingleChart();
+        }
+
+        function resetMultiView() {
+            if (!parsedData) return;
+
+            document.getElementById('multiStartCounter').value = minCounter;
+            document.getElementById('multiEndCounter').value = maxCounter;
+            updateMultiCharts();
+        }
+
+        // Download chart
+        function downloadChart() {
+            if (!singleChart) return;
+
+            const link = document.createElement('a');
+            link.download = 'signal_chart.png';
+            link.href = singleChart.toBase64Image();
+            link.click();
+        }
+
+        // Initialize on load
+        window.onload = function () {
+            initSingleChart();
+        };
+    </script>
+</body>
+
+</html>
