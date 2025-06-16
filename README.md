@@ -12,7 +12,7 @@ A web-based tool for analyzing multi-channel signal data from CSV files.
 
 ## Live Demo
 
-Visit: https://[your-username].github.io/signal-analysis-dashboard/
+Visit: https://SuwanneeThongtha.github.io/signal-analysis-dashboard/
 
 ## Usage
 
